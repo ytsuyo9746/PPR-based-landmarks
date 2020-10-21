@@ -2,6 +2,7 @@ from Node import *
 import random
 from queue import Queue
 import pdb
+import numpy as np
 
 class Graph():
     def __init__(self, ADJ, mode='forward_local_push'):
@@ -85,6 +86,55 @@ class Graph():
                 else:
                     pass
         return None
+
+    def calc_PPR_by_power_iteration(self, source_id, alpha, epsilon):
+        transition_matrix = self.create_transiton_matrix_for_PPR(source_id, alpha)
+        ppr_vec = np.random.rand(self.node_count)
+        norm = np.linalg.norm(ppr_vec,ord=1)
+        for i in range(self.node_count):
+            ppr_vec[i] /= norm
+
+        prev = ppr_vec
+        new = np.dot(transition_matrix, prev)
+        count = 1
+        diff = 1
+        while (diff > epsilon):
+            prev = new
+            new = np.dot(transition_matrix, prev)
+            diff = np.linalg.norm((new - prev), ord=1)
+            # print('count : {}, diff : {}'.format(count, diff))
+            count += 1
+        return new
+
+    def create_transiton_matrix_for_PPR(self, source_id, alpha):
+        node_id_list = list(self.nodes.keys())
+        node_id_list.sort()
+        node_id_to_index = dict()
+        for i in range(len(node_id_list)):
+            node_id_to_index[node_id_list[i]] = i
+
+        transition_matrix = np.zeros((self.node_count, self.node_count))
+        for i, node_id in enumerate(node_id_list):
+            for adj_node in self.nodes[node_id].adj:
+                transition_matrix[node_id_to_index[adj_node.id]][i] = 1
+
+        dangling = np.max(transition_matrix, axis = 0)
+        for i in range(self.node_count):
+            if dangling[i] == 0:
+                dangling[i] = 1
+            else:
+                dangling[i] = 0
+        transition_matrix += dangling
+
+        count = np.count_nonzero(transition_matrix, axis = 0)
+        transition_matrix = transition_matrix / count
+
+        source_index = node_id_to_index[source_id]
+        pref_vec = np.zeros((self.node_count, 1))
+        pref_vec[source_index][0] = 1
+        transition_matrix = (1 - alpha) * transition_matrix + alpha * pref_vec
+
+        return transition_matrix
 
     def get_random_node(self):
         return random.choice(nodes.values())

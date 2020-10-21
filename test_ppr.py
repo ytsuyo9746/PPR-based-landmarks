@@ -65,3 +65,29 @@ class TestPPR(unittest.TestCase):
         self.assertEqual(dst, 3, 'dst between 3 and 8')
         dst = self.graph.get_dst_between(self.graph.search_node('6'), self.graph.search_node('6'))
         self.assertEqual(dst, 0, 'dst between 6 and 6')
+
+    def test_create_adjacent_matrix(self):
+        matrix = self.graph.create_transiton_matrix_for_PPR('0', 0.25)
+        exact_matrix = np.array([\
+        [  0, 1/3, 1/3,   0,   0,   0,   0,   0,   0],\
+        [1/2,   0,   0, 1/2, 1/4,   0,   0,   0,   0],\
+        [1/2,   0,   0,   0, 1/4, 1/3,   0,   0,   0],\
+        [  0, 1/3,   0,   0,   0,   0, 1/3,   0,   0],\
+        [  0, 1/3, 1/3,   0,   0, 1/3, 1/3,   0,   0],\
+        [  0,   0, 1/3,   0, 1/4,   0,   0,   0, 1/2],\
+        [  0,   0,   0, 1/2, 1/4,   0,   0, 1/2,   0],\
+        [  0,   0,   0,   0,   0,   0, 1/3,   0, 1/2],\
+        [  0,   0,   0,   0,   0, 1/3,   0, 1/2,   0]])
+        pref_vec = np.array([1, 0, 0, 0, 0, 0, 0, 0, 0]).reshape([9, 1])
+        exact_matrix = exact_matrix * 3/4 + 1/4 * pref_vec
+        self.assertEqual(np.array_equal(matrix, exact_matrix), True, 'adjacent matrix')
+
+    def test_ppr_by_power_iteration(self):
+        ppr = self.graph.calc_PPR_by_power_iteration(self.source, self.alpha, 0.0000001)
+        exact = np.array([0.23905047183767272, 0.15818756963182004, \
+        0.15610821332467192, 0.06548021403691155, \
+        0.13547547953577246, 0.09088141644190337, \
+        0.07297155190433098, 0.038581915537474205, \
+        0.04213327646567948])
+        diff = np.linalg.norm((ppr - exact), ord=1)
+        self.assertEqual((abs(diff)<0.01), True, "ppr by power iteration")
